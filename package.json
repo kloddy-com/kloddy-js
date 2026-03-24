@@ -1,0 +1,43 @@
+{
+  "name": "@kloddy/kloddy-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kloddy-com/kloddy-js.git"
+  },
+  "version": "0.1.0",
+  "description": "Kloddy JS SDK",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --watch --dts",
+    "lint": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "kloddy",
+    "ai",
+    "prompts",
+    "llm",
+    "analytics"
+  ],
+  "author": "Kloddy",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "cross-fetch": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "react": "^18.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}
