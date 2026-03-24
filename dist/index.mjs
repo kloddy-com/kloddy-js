@@ -4,6 +4,8 @@ var KloddyClient = class {
   apiKey;
   apiSecret;
   host;
+  defaultOrgId = null;
+  defaultFeatureId = null;
   token = null;
   tokenExpires = null;
   constructor(apiKeyOrOptions, options) {
@@ -12,11 +14,15 @@ var KloddyClient = class {
       this.apiSecret = options?.apiSecret || options?.personalApiKey || options?.secretKey || "";
       this.token = options?.token || null;
       this.host = options?.host || "https://api.kloddy.com";
+      this.defaultOrgId = options?.defaultOrgId || null;
+      this.defaultFeatureId = options?.defaultFeatureId || null;
     } else {
       this.apiKey = apiKeyOrOptions.apiKey || apiKeyOrOptions.projectApiKey || apiKeyOrOptions.applicationId || "";
       this.apiSecret = apiKeyOrOptions.apiSecret || apiKeyOrOptions.personalApiKey || apiKeyOrOptions.secretKey || "";
       this.token = apiKeyOrOptions.token || null;
       this.host = apiKeyOrOptions.host || "https://api.kloddy.com";
+      this.defaultOrgId = apiKeyOrOptions.defaultOrgId || null;
+      this.defaultFeatureId = apiKeyOrOptions.defaultFeatureId || null;
     }
     if (!this.token && (!this.apiKey || !this.apiSecret)) {
       console.warn("KloddyClient: token or credentials missing. API calls will fail.");
@@ -69,6 +75,25 @@ var KloddyClient = class {
     }
     return await response.json();
   }
+  /**
+   * Get current user information.
+   */
+  async whoAmI() {
+    return this.request("/api/whoiam");
+  }
+  /**
+   * List organizations for the current user.
+   */
+  async listOrganizations() {
+    return this.request("/api/organizations");
+  }
+  /**
+   * List features, optionally filtered by organization.
+   */
+  async listFeatures(orgId) {
+    const path = orgId ? `/api/features?org_id=${orgId}` : "/api/features";
+    return this.request(path);
+  }
 };
 
 // src/prompts.ts
@@ -82,18 +107,33 @@ var Prompts = class {
     }
   }
   /**
-   * Fetch the latest version of a prompt template.
+   * List prompts with filters.
+   */
+  async list(options = {}) {
+    const params = new URLSearchParams();
+    if (options.page) params.append("page", options.page.toString());
+    if (options.pageSize) params.append("pageSize", options.pageSize.toString());
+    if (options.name) params.append("name", options.name);
+    const orgId = options.org_id || this.client.defaultOrgId;
+    if (orgId) params.append("org_id", orgId);
+    const featureId = options.feature_id || this.client.defaultFeatureId;
+    if (featureId) params.append("feature_id", featureId);
+    const queryString = params.toString() ? `?${params.toString()}` : "";
+    return this.client.request(`/api/prompts${queryString}`);
+  }
+  /**
+   * Fetch a prompt template.
    */
   async get(name, options = {}) {
     const params = new URLSearchParams();
     if (options.version) params.append("version", options.version.toString());
-    if (options.resolve !== void 0) params.append("resolve", options.resolve.toString());
+    const resolve = options.resolve !== void 0 ? options.resolve : true;
+    params.append("resolve", resolve.toString());
     const queryString = params.toString() ? `?${params.toString()}` : "";
     try {
-      const prompt = await this.client.request(`/api/prompt/${name}${queryString}`, {
+      return await this.client.request(`/api/prompt/${name}${queryString}`, {
         method: "GET"
       });
-      return prompt;
     } catch (error) {
       if (options.fallback) {
         return {
@@ -112,8 +152,31 @@ var Prompts = class {
   async execute(name, options = {}) {
     return this.client.request(`/api/prompt/${name}`, {
       method: "POST",
-      body: JSON.stringify(options)
+      body: JSON.stringify({
+        ...options,
+        resolve: options.resolve !== void 0 ? options.resolve : true
+      })
     });
+  }
+  /**
+   * Play: Direct execution for a single model/version.
+   * Same as execute but follows specific naming/body requirements.
+   */
+  async play(name, options = {}) {
+    return this.client.request("/api/play", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        ...options,
+        resolve: options.resolve !== void 0 ? options.resolve : true
+      })
+    });
+  }
+  /**
+   * Update: Download all prompts for the user/organization.
+   */
+  async update(options = {}) {
+    return this.list(options);
   }
   /**
    * Local compilation of a template string with variables.
@@ -148,7 +211,13 @@ var Evaluations = class {
     });
   }
   /**
-   * Alias for run(name) as requested in the hook example.
+   * Alias for run() as requested.
+   */
+  async evaluate(options) {
+    return this.run(options);
+  }
+  /**
+   * Legacy alias for run(name) as requested in the hook example.
    */
   async get(name, variables = {}) {
     return this.run({ name, variables });
@@ -193,6 +262,15 @@ var Kloddy = class {
     this.client = new KloddyClient(apiKeyOrOptions, options);
     this.prompts = new Prompts({ posthog: this.client });
     this.evaluations = new Evaluations({ posthog: this.client });
+  }
+  async whoAmI() {
+    return this.client.whoAmI();
+  }
+  async listOrganizations() {
+    return this.client.listOrganizations();
+  }
+  async listFeatures(orgId) {
+    return this.client.listFeatures(orgId);
   }
 };
 var index_default = Kloddy;

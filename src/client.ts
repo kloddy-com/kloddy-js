@@ -5,6 +5,8 @@ export class KloddyClient {
   private apiKey: string;
   private apiSecret: string;
   private host: string;
+  public defaultOrgId: string | null = null;
+  public defaultFeatureId: string | null = null;
   private token: string | null = null;
   private tokenExpires: number | null = null;
 
@@ -14,11 +16,15 @@ export class KloddyClient {
       this.apiSecret = options?.apiSecret || options?.personalApiKey || options?.secretKey || '';
       this.token = options?.token || null;
       this.host = options?.host || 'https://api.kloddy.com';
+      this.defaultOrgId = options?.defaultOrgId || null;
+      this.defaultFeatureId = options?.defaultFeatureId || null;
     } else {
       this.apiKey = apiKeyOrOptions.apiKey || apiKeyOrOptions.projectApiKey || apiKeyOrOptions.applicationId || '';
       this.apiSecret = apiKeyOrOptions.apiSecret || apiKeyOrOptions.personalApiKey || apiKeyOrOptions.secretKey || '';
       this.token = apiKeyOrOptions.token || null;
       this.host = apiKeyOrOptions.host || 'https://api.kloddy.com';
+      this.defaultOrgId = apiKeyOrOptions.defaultOrgId || null;
+      this.defaultFeatureId = apiKeyOrOptions.defaultFeatureId || null;
     }
 
     if (!this.token && (!this.apiKey || !this.apiSecret)) {

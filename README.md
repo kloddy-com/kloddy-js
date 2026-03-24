@@ -72,18 +72,70 @@ function App() {
 }
 ```
 
+## Advanced Usage
+
+### Organization & Feature Context
+You can set a default organization or feature ID during initialization to simplify your calls.
+
+```javascript
+const kloddy = new Kloddy({
+  apiKey: '...',
+  defaultOrgId: 'org_123',
+  defaultFeatureId: 'feat_456'
+});
+
+// These will now use the defaults automatically
+const prompts = await kloddy.prompts.list();
+const features = await kloddy.listFeatures();
+```
+
+### Account Information
+```javascript
+const user = await kloddy.whoAmI();
+const orgs = await kloddy.listOrganizations();
+const features = await kloddy.listFeatures(orgs[0].id);
+```
+
+### Prompts Management
+```javascript
+// List all prompts
+const allPrompts = await kloddy.prompts.list({ pageSize: 50 });
+
+// Update/Sync (alias for list)
+const synced = await kloddy.prompts.update();
+
+// Play (Direct Execution)
+const result = await kloddy.prompts.play('my-prompt', {
+  variables: { user: 'Alice' },
+  model: 'gpt-4'
+});
+```
+
+### Evaluations
+```javascript
+const evalResult = await kloddy.evaluations.evaluate({
+  name: 'model-comparison',
+  models: ['gpt-4', 'claude-3'],
+  judge: 'gpt-4-judge',
+  variables: { input: '...' },
+  temperature: 0.7
+});
+```
+
 ## API Reference
 
 ### `Kloddy` Client
-The main entry point for the SDK.
-
-- `prompts.get(name, options)`: Fetch a prompt template.
-- `prompts.execute(name, options)`: Execute a prompt via the API.
-- `prompts.compile(template, variables)`: Locally compile a template string.
-- `evaluations.run(options)`: Run model evaluations.
+- `whoAmI()`: Get current user details.
+- `listOrganizations()`: List organizations.
+- `listFeatures(orgId?)`: List features.
+- `prompts.list(filters)`: List prompts with pagination and filters.
+- `prompts.get(name, options)`: Fetch a template.
+- `prompts.play(name, options)`: Execute a prompt directly.
+- `prompts.update()`: Sync all prompts.
+- `evaluations.evaluate(options)`: Run model evaluations.
 
 ### React Hooks
-- `usePrompt()`: Returns `getPrompt`, `getAwnser`, `getEvaluation`, and `compile`.
+- `usePrompt()`: Returns `getPrompt`, `getAwnser`, `getEvaluation`, `compile`.
 
 ## Integration with Vercel AI Gateway
 

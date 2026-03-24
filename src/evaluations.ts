@@ -23,7 +23,14 @@ export class Evaluations {
   }
 
   /**
-   * Alias for run(name) as requested in the hook example.
+   * Alias for run() as requested.
+   */
+  async evaluate(options: EvaluationOptions): Promise<EvaluationResult> {
+    return this.run(options);
+  }
+
+  /**
+   * Legacy alias for run(name) as requested in the hook example.
    */
   async get(name: string, variables: Record<string, any> = {}): Promise<EvaluationResult> {
     return this.run({ name, variables });

@@ -8,6 +8,8 @@ export interface KloddyOptions {
   secretKey?: string;     // Internal term
   host?: string;
   cacheTtlSeconds?: number;
+  defaultOrgId?: string;
+  defaultFeatureId?: string;
 }
 
 export interface User {

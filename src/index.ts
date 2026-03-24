@@ -19,6 +19,18 @@ export class Kloddy {
     this.prompts = new Prompts({ posthog: this.client });
     this.evaluations = new Evaluations({ posthog: this.client });
   }
+
+  async whoAmI() {
+    return this.client.whoAmI();
+  }
+
+  async listOrganizations() {
+    return this.client.listOrganizations();
+  }
+
+  async listFeatures(orgId?: string) {
+    return this.client.listFeatures(orgId);
+  }
 }
 
 export default Kloddy;
