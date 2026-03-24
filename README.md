@@ -1,8 +1,8 @@
 # @kloddy/kloddy-js
 
-Kloddy is the ultimate platform for Prompt Engineering and LLM Analytics. This SDK allows you to fetch, compile, and execute prompts directly from your Node.js or React applications.
+Kloddy is the ultimate platform for Prompt Engineering and LLM Analytics. This SDK allows you to fetch, compile, and execute prompts directly from your Node.js or React applications with full type safety and zero-config support.
 
-## installation
+## Installation
 
 ```bash
 # via npm
@@ -14,140 +14,109 @@ yarn add @kloddy/kloddy-js
 
 ## Quick Start
 
-### Basic Usage (Node.js)
+### Zero-Config Initialization (Node.js)
 
-```javascript
-import { Kloddy } from 'kloddy-js';
+Kloddy automatically looks for `KLODDY_API_KEY` and `KLODDY_API_SECRET` in your environment variables.
 
-const kloddy = new Kloddy({
-  apiKey: '<your_project_api_key>',
-  apiSecret: '<your_personal_api_key>',
-  host: 'https://api.kloddy.com' // Optional
+```typescript
+import { Kloddy } from '@kloddy/kloddy-js';
+
+// Zero-config! Uses process.env.KLODDY_API_KEY and process.env.KLODDY_API_SECRET
+const kloddy = new Kloddy();
+
+// Type-safe prompts (Optional but recommended)
+type MyPrompts = 'exam-generator' | 'customer-support' | 'welcome-email';
+const kloddyTyped = new Kloddy<MyPrompts>();
+
+// One-step execution (Play)
+const { result } = await kloddyTyped.prompts.play('exam-generator', {
+  variables: { locale: 'en-US', topic: 'Physics' }
 });
 
-// Fetch a prompt template
-const template = await kloddy.prompts.get('customer-support-agent', {
-  fallback: 'You are a helpful assistant.'
-});
-
-// Compile with variables
-const systemPrompt = kloddy.prompts.compile(template, {
-  userName: 'Alice',
-  company: 'Acme Corp'
-});
-
-console.log(systemPrompt);
+console.log(result);
 ```
 
-### React Usage
+### Next.js Integration (App Router)
 
-Wrap your app with `KloddyProvider`. For security, it is highly recommended to generate an **accessToken** on your server and pass it to the frontend instead of using your `apiSecret` in the browser.
+Securely generate tokens on the server without exposing secrets to the client.
+
+```typescript
+// app/api/kloddy/token/route.ts
+import { createKloddyAdapter } from '@kloddy/kloddy-js/next';
+
+export const GET = createKloddyAdapter({
+  // Credentials picked up from env vars automatically
+});
+```
+
+### React Hooks
+
+Wrap your application with `KloddyProvider` and use the simplified hooks.
 
 ```tsx
-import { KloddyProvider, usePrompt } from '@kloddy/kloddy-js';
+// app/layout.tsx
+import { KloddyProvider } from '@kloddy/kloddy-js';
 
-function MyComponent() {
-  const { getPrompt, getAwnser } = usePrompt();
-
-  const handleWelcome = async () => {
-    const prompt = await getPrompt('welcome-message');
-    const response = await getAwnser('welcome-message', {
-      variables: { name: 'Alice' }
-    });
-    console.log(response.result);
-  };
-
-  return <button onClick={handleWelcome}>Say Hello</button>;
+export default function RootLayout({ children }) {
+  return (
+    <KloddyProvider authEndpoint="/api/kloddy/token">
+      {children}
+    </KloddyProvider>
+  );
 }
 
-function App() {
-  // The token should be fetched from your own API
-  const [token, setToken] = useState('');
+// components/PromptExecutor.tsx
+'use client';
+import { usePrompt } from '@kloddy/kloddy-js';
+
+export function PromptExecutor() {
+  const { getAwnser, isLoading } = usePrompt<'exam-generator'>();
+
+  const handleRun = async () => {
+    const { result } = await getAwnser('exam-generator', {
+      variables: { topic: 'Math' }
+    });
+    alert(result);
+  };
 
   return (
-    <KloddyProvider apiKey="YOUR_PROJECT_ID" token={token}>
-      <MyComponent />
-    </KloddyProvider>
+    <button onClick={handleRun} disabled={isLoading}>
+      {isLoading ? 'Running...' : 'Generate Exam'}
+    </button>
   );
 }
 ```
 
-## Advanced Usage
+## Features
 
-### Organization & Feature Context
-You can set a default organization or feature ID during initialization to simplify your calls.
-
-```javascript
-const kloddy = new Kloddy({
-  apiKey: '...',
-  defaultOrgId: 'org_123',
-  defaultFeatureId: 'feat_456'
-});
-
-// These will now use the defaults automatically
-const prompts = await kloddy.prompts.list();
-const features = await kloddy.listFeatures();
-```
-
-### Account Information
-```javascript
-const user = await kloddy.whoAmI();
-const orgs = await kloddy.listOrganizations();
-const features = await kloddy.listFeatures(orgs[0].id);
-```
-
-### Prompts Management
-```javascript
-// List all prompts
-const allPrompts = await kloddy.prompts.list({ pageSize: 50 });
-
-// Update/Sync (alias for list)
-const synced = await kloddy.prompts.update();
-
-// Play (Direct Execution)
-const result = await kloddy.prompts.play('my-prompt', {
-  variables: { user: 'Alice' },
-  model: 'gpt-4'
-});
-```
-
-### Evaluations
-```javascript
-const evalResult = await kloddy.evaluations.evaluate({
-  name: 'model-comparison',
-  models: ['gpt-4', 'claude-3'],
-  judge: 'gpt-4-judge',
-  variables: { input: '...' },
-  temperature: 0.7
-});
-```
+- **Zero-Config**: Works out of the box with `process.env`.
+- **Type Safety**: Use Generics to get autocomplete for your prompt names.
+- **Next.js Ready**: Built-in adapter for secure token handling.
+- **Graceful Degradation**: Built-in fallback support for offline mode or API issues.
+- **Professional Error Handling**: Custom error classes like `KloddyAuthError` and `KloddyNotFoundError`.
+- **Tree-Shakable**: Optimized for small bundle sizes.
 
 ## API Reference
 
-### `Kloddy` Client
-- `whoAmI()`: Get current user details.
-- `listOrganizations()`: List organizations.
-- `listFeatures(orgId?)`: List features.
-- `prompts.list(filters)`: List prompts with pagination and filters.
-- `prompts.get(name, options)`: Fetch a template.
-- `prompts.play(name, options)`: Execute a prompt directly.
-- `prompts.update()`: Sync all prompts.
-- `evaluations.evaluate(options)`: Run model evaluations.
+### `Kloddy<TPromptNames>`
+The main entry point for the SDK.
+- `prompts.get(name, options)`: Fetch a template with optional version and fallback.
+- `prompts.play(name, options)`: Execute a prompt directly in one step.
+- `prompts.compile(template, variables)`: Locally compile a template string.
+- `evaluations.run(options)`: Run model evaluations.
 
 ### React Hooks
-- `usePrompt()`: Returns `getPrompt`, `getAwnser`, `getEvaluation`, `compile`.
+- `usePrompt<TPromptNames>()`: Manage prompts and execution state.
+- `useEvaluations()`: Manage model evaluations and comparisons.
+- `usePromptStream<TPromptNames>()`: Support for streaming responses.
 
-## Integration with Vercel AI Gateway
+## Advanced Fallback Strategy
 
-You can use Kloddy to manage your prompts and Vercel AI Gateway to route your LLM calls.
+Prevent outages by providing a local fallback for critical prompts.
 
-```javascript
-const template = await kloddy.prompts.get('support-agent');
-const systemPrompt = kloddy.prompts.compile(template, { user: 'Alice' });
-
-// Use with OpenAI via Vercel AI Gateway
-const openai = new OpenAI({
-  baseURL: 'https://gateway.ai.cloudflare.com/v1/YOUR_ACCOUNT_ID/YOUR_GATEWAY_ID/openai'
+```typescript
+const template = await kloddy.prompts.get('critical-prompt', {
+  fallback: 'You are a helpful assistant. (Offline Fallback)'
 });
 ```
 
